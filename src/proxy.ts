@@ -3,7 +3,7 @@ import { jwtVerify } from "jose";
 
 const PUBLIC = new Set(["/", "/login", "/register"]);
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (
