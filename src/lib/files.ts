@@ -55,7 +55,8 @@ export async function extractFileText(
 
   if (mimeType === "application/pdf" || lower.endsWith(".pdf")) {
     try {
-      const pdfParse = (await import("pdf-parse")).default as (
+      const pdfModule = (await import("pdf-parse")) as any;
+      const pdfParse = (pdfModule.default || pdfModule) as (
         data: Buffer
       ) => Promise<{ text: string }>;
       const parsed = await pdfParse(buf);

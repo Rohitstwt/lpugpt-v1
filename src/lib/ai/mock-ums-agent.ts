@@ -335,13 +335,13 @@ async function driveFeePortalWithBrowser(opts: {
     await page.waitForSelector("#feeType", { timeout: 10_000 });
 
     await page.select("#feeType", opts.feeCategory);
-    await page.click("#cardName", { clickCount: 3 });
+    await page.click("#cardName", { clickCount: 3 } as any);
     await page.type("#cardName", opts.studentName, { delay: 35 });
-    await page.click("#cardNumber", { clickCount: 3 });
+    await page.click("#cardNumber", { clickCount: 3 } as any);
     await page.type("#cardNumber", "4111 1111 1111 1111", { delay: 25 });
-    await page.click("#cardExpiry", { clickCount: 3 });
+    await page.click("#cardExpiry", { clickCount: 3 } as any);
     await page.type("#cardExpiry", "12/28", { delay: 40 });
-    await page.click("#cardCvv", { clickCount: 3 });
+    await page.click("#cardCvv", { clickCount: 3 } as any);
     await page.type("#cardCvv", "123", { delay: 40 });
 
     await sleep(400);
