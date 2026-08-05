@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mock UMS · Fee Payment</title>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; background: #f0f2f5; margin: 0; }
+    .header { background: #1a237e; color: #fff; padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { margin: 0; font-size: 1.35rem; }
+    .badge { background: #ff6a3d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .container { max-width: 620px; margin: 36px auto; background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); padding: 28px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; }
+    input, select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
+    .btn { background: #e65100; color: #fff; border: none; padding: 12px 20px; font-size: 1rem; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; }
+    .btn:disabled { opacity: .6; cursor: wait; }
+    .receipt { display: none; background: #e8f5e9; border: 1px solid #4caf50; padding: 20px; border-radius: 10px; margin-top: 18px; text-align: center; }
+    .hint { color: #6b7280; font-size: 13px; margin-top: 14px; }
+    .row { display: flex; gap: 16px; }
+    .row > div { flex: 1; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Mock University Management System</h1>
+    <span class="badge">DEMO · not real LPU UMS</span>
+  </div>
+  <div class="container">
+    <h2 style="margin-top:0;color:#1a237e;border-bottom:2px solid #eee;padding-bottom:10px;">Fee Payment Gateway</h2>
+    <p class="hint">LPUGPT agents automate this page when you type <strong>“pay my fees”</strong> in chat.</p>
+    <form id="feeForm">
+      <div class="form-group">
+        <label for="feeType">Select Fee to Pay</label>
+        <select id="feeType">
+          <option value="hostel">Hostel Fee (outstanding)</option>
+          <option value="exam">Exam Fee (outstanding)</option>
+          <option value="tuition">Tuition Fee</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="cardName">Cardholder Name</label>
+        <input id="cardName" type="text" placeholder="Name on card" />
+      </div>
+      <div class="form-group">
+        <label for="cardNumber">Card Number</label>
+        <input id="cardNumber" type="text" placeholder="4111 1111 1111 1111" />
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label for="cardExpiry">Expiry</label>
+          <input id="cardExpiry" type="text" placeholder="12/28" />
+        </div>
+        <div class="form-group">
+          <label for="cardCvv">CVV</label>
+          <input id="cardCvv" type="text" placeholder="123" />
+        </div>
+      </div>
+      <button type="button" class="btn" id="payBtn" onclick="submitPayment()">Pay Securely</button>
+    </form>
+    <div id="receiptBox" class="receipt">
+      <h3 style="color:#2e7d32;margin-top:0;">Payment Successful</h3>
+      <p>Transaction ID: <strong id="txnId"></strong></p>
+      <p>Fee Type: <strong id="paidFeeType"></strong></p>
+      <p style="font-size:.9em;color:#666;">Mock ERP database updated — ask LPUGPT to show fees again.</p>
+    </div>
+  </div>
+  <script>
+    async function submitPayment() {
+      const btn = document.getElementById("payBtn");
+      btn.disabled = true;
+      btn.innerText = "Processing…";
+      const feeType = document.getElementById("feeType").value;
+      const params = new URLSearchParams(window.location.search);
+      const agentMode = params.get("agent") === "1";
+      const agentKey = params.get("key") || "lpugpt-mock-agent";
+      try {
+        const res = await fetch(
+          agentMode ? "/api/mock-erp/fees/agent-pay" : "/api/mock-erp/fees/pay",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(agentMode ? { "x-erp-agent-key": agentKey } : {}),
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              feeType,
+              studentEmail: params.get("student") || "student@lpu.in",
+            }),
+          }
+        );
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("feeForm").style.display = "none";
+          document.getElementById("receiptBox").style.display = "block";
+          document.getElementById("txnId").innerText = data.txnId || ("TXN" + Date.now());
+          document.getElementById("paidFeeType").innerText = data.feeLabel || feeType;
+        } else {
+          btn.innerText = data.error || "Payment failed";
+          btn.disabled = false;
+        }
+      } catch (e) {
+        btn.innerText = "Network error";
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

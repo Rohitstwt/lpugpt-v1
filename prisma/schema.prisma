@@ -1,0 +1,366 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String
+  passwordHash String
+  role         String         @default("STUDENT") // STUDENT | TEACHER | ADMIN
+  studentId    String?
+  department   String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  sessions     Session[]
+  courses      Course[]       @relation("TeacherCourses")
+  enrollments  Enrollment[]
+  updates      CampusUpdate[]
+  messages     ChatMessage[]
+  auditLogs    AuditLog[]
+  files        UploadedFile[]
+  attendance   AttendanceRecord[]
+  fees         FeeInvoice[]
+  grades       GradeRecord[]
+  hostel       HostelAllocation?
+  assignments  AssignmentTask[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  ipHash    String?
+  userAgent String?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Course {
+  id          String         @id @default(cuid())
+  code        String         @unique
+  name        String
+  description String?
+  teacherId   String
+  teacher     User           @relation("TeacherCourses", fields: [teacherId], references: [id])
+  location    String
+  building    String?
+  room        String?
+  schedule    String
+  dayOfWeek   String?
+  startTime   String?
+  endTime     String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  enrollments Enrollment[]
+  updates     CampusUpdate[]
+  attendance  AttendanceRecord[]
+  grades      GradeRecord[]
+
+  @@index([teacherId])
+  @@index([code])
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model CampusUpdate {
+  id        String   @id @default(cuid())
+  courseId  String?
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  type      String
+  title     String
+  body      String
+  location  String?
+  building  String?
+  room      String?
+  metadata  String?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([courseId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  intent    String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  resource  String
+  detail    String?
+  ipHash    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model UploadedFile {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filename      String
+  mimeType      String
+  size          Int
+  kind          String   // document | image | audio | other
+  storagePath   String
+  extractedText String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// Mock University ERP — attendance
+model AttendanceRecord {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId       String
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  present        Int
+  total          Int
+  lastUpdatedAt  DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([userId])
+}
+
+/// Mock University ERP — fee invoices / dues
+model FeeInvoice {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  term        String
+  category    String   // tuition | hostel | exam | other
+  amountInr   Int
+  paidInr     Int      @default(0)
+  status      String   // PAID | DUE | PARTIAL | OVERDUE
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([userId, status])
+}
+
+/// Mock University ERP — results / grades
+model GradeRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  term      String
+  grade     String
+  marks     Float?
+  credits   Int      @default(3)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId, term])
+  @@index([userId])
+}
+
+/// Mock University ERP — hostel allotment
+model HostelAllocation {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  block     String
+  room      String
+  bed       String?
+  warden    String?
+  status    String   @default("ACTIVE") // ACTIVE | VACATED
+  createdAt DateTime @default(now())
+}
+
+/// Mock University ERP — assignment submissions
+model AssignmentTask {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseCode  String
+  title       String
+  dueDate     DateTime
+  status      String    @default("PENDING") // PENDING | SUBMITTED | LATE
+  submittedAt DateTime?
+  fileName    String?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, status])
+  @@index([courseCode])
+}
+
+/// Public knowledge — campus buildings
+model Building {
+  id          String   @id @default(cuid())
+  name        String
+  block       String?
+  description String?
+  facilities  String?  // JSON array
+  lat         Float?
+  lng         Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([block])
+}
+
+/// Public knowledge — faculty directory
+model FacultyMember {
+  id             String   @id @default(cuid())
+  name           String
+  department     String?
+  designation    String?
+  email          String?
+  specialization String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([department])
+  @@index([name])
+}
+
+/// Public knowledge — campus events
+model CampusEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  time        String?
+  location    String?
+  category    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+}
+
+/// Public knowledge — notices
+model Notice {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  category  String?
+  priority  String   @default("normal") // low | normal | high | urgent
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
+/// Public knowledge — clubs
+model Club {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String?
+  contact     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// RAG — indexed documents
+model Document {
+  id        String   @id @default(cuid())
+  title     String
+  category  String?
+  source    String?
+  mimeType  String?
+  status    String   @default("indexed") // pending | indexed | failed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chunks    Chunk[]
+
+  @@index([category])
+}
+
+/// RAG — document chunks
+model Chunk {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String
+  index      Int
+  tokenCount Int?
+  createdAt  DateTime @default(now())
+
+  @@index([documentId])
+}
+
+/// RAG — embedding metadata (vectors stored in file index for MVP)
+model EmbeddingMeta {
+  id         String   @id @default(cuid())
+  chunkId    String?
+  documentId String?
+  model      String
+  dimensions Int?
+  createdAt  DateTime @default(now())
+}
+
+/// Chat sessions for history
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String?
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  SessionMessage[]
+
+  @@index([userId])
+}
+
+model SessionMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  blocks    String?     // JSON UI blocks
+  intent    String?
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+/// Future integration registry
+model FutureIntegration {
+  id        String   @id @default(cuid())
+  name      String   @unique // UMS | ERP | LIBRARY | TRANSPORT
+  status    String   @default("planned") // planned | active | disabled
+  config    String?  // JSON config
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

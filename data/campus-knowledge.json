@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "name": "LPUGPT Campus Knowledge Base",
+  "description": "Ground-truth documents for LPUGPT retrieval. Public facts cite sources; live course locations come from the app database.",
+  "documents": [
+    {
+      "id": "overview-1",
+      "title": "About Lovely Professional University",
+      "category": "overview",
+      "source": "Wikipedia / LPU public info",
+      "text": "Lovely Professional University (LPU) is a private university in Chiheru (Chaheru), Phagwara, Punjab, India. It was established under the Lovely Professional University Act, 2005 and commenced operations in 2006. The campus is around 90 acres. Official website: https://www.lpu.in/. Brand colour is orange."
+    },
+    {
+      "id": "overview-2",
+      "title": "LPU leadership and location",
+      "category": "overview",
+      "source": "Wikipedia",
+      "text": "LPU founder and chancellor is Ashok Kumar Mittal. Pro-chancellor is Rashmi Mittal. The university is located near Phagwara in Punjab (PIN commonly associated with campus area 144411). Approximate coordinates: 31.25°N, 75.70°E. The campus is about 8 km from Phagwara railway station."
+    },
+    {
+      "id": "academics-1",
+      "title": "Schools and programmes",
+      "category": "academics",
+      "source": "Wikipedia",
+      "text": "LPU has schools covering business, fashion design, engineering, law, education, agriculture, humanities, and tourism. Distance education programmes are approved by the UGC Distance Education Bureau."
+    },
+    {
+      "id": "academics-2",
+      "title": "Affiliations and recognition",
+      "category": "academics",
+      "source": "Wikipedia",
+      "text": "LPU is recognised/affiliated with bodies such as UGC, Pharmacy Council of India (PCI), and Bar Council of India (BCI). School of Agriculture is accredited by ICAR. Other memberships/accreditations include NBA, Council of Architecture (CoA), NCTE, and Association of Commonwealth Universities (ACU)."
+    },
+    {
+      "id": "rankings-1",
+      "title": "NIRF and international rankings",
+      "category": "rankings",
+      "source": "Wikipedia (NIRF 2025 / THE / QS references)",
+      "text": "In NIRF 2025, LPU was reported around overall rank 49 and universities rank 31. Category ranks reported include management ~44, pharmacy ~13, engineering ~48, law ~26, architecture ~24. Times Higher Education listed LPU in the 501–600 band; QS World University Rankings 2026 band reported around 901–950."
+    },
+    {
+      "id": "facilities-1",
+      "title": "Campus facilities overview",
+      "category": "facilities",
+      "source": "LPU campus operational knowledge",
+      "text": "LPU campus includes academic blocks, hostels, library, sports facilities, shopping/food courts, medical support, and admin offices. Academic buildings are commonly referred to by Block numbers (for example Block 29, 32, 33, 34, 38). Students usually locate classes by course code + block + room."
+    },
+    {
+      "id": "facilities-2",
+      "title": "Library and learning resources",
+      "category": "facilities",
+      "source": "LPU campus operational knowledge",
+      "text": "LPU has a central library with books, journals, and digital resources for enrolled students. Students typically need a valid ID card for library access. Quiet study areas and computer access are available during library hours. For exact timings, check the latest notice on the LPU student portal or library desk."
+    },
+    {
+      "id": "facilities-3",
+      "title": "Hostels and residential life",
+      "category": "facilities",
+      "source": "LPU campus operational knowledge",
+      "text": "LPU provides on-campus hostel accommodation for students with separate residential areas and mess facilities. Hostel allotment, room change, and leave permissions are handled through hostel administration / Uni-Hostel processes. Visitors and late-night entry follow hostel rules."
+    },
+    {
+      "id": "facilities-4",
+      "title": "Transport and getting to campus",
+      "category": "facilities",
+      "source": "LPU campus operational knowledge",
+      "text": "Campus is near Phagwara, Punjab. Common arrival points are Phagwara railway station and nearby bus stands, then local taxi/auto to campus. Students living off-campus often use university or private transport routes. Always verify current shuttle information from transport notices."
+    },
+    {
+      "id": "facilities-5",
+      "title": "Medical and emergency support",
+      "category": "facilities",
+      "source": "LPU campus operational knowledge",
+      "text": "Campus medical facilities support basic health needs for students and staff. For emergencies, contact campus security / medical helpdesk immediately and inform a warden or faculty mentor. Keep emergency contacts saved in your phone."
+    },
+    {
+      "id": "faq-1",
+      "title": "How to find a class location",
+      "category": "faq",
+      "source": "LPUGPT live campus protocol",
+      "text": "To find where a class is happening, ask LPUGPT with the course code (example: Where is CSE301?). LPUGPT reads the live course location from the campus database. If a teacher moves a class mid-way, the new location is updated in the database and appears in answers immediately."
+    },
+    {
+      "id": "faq-2",
+      "title": "How teachers update class data",
+      "category": "faq",
+      "source": "LPUGPT live campus protocol",
+      "text": "Teachers and admins can update live campus data by chatting naturally, for example: Move CSE301 to Block 38 Room 401, or Announce CSE301: bring laptops tomorrow. Only the assigned teacher (or an admin) can mutate that course. Students can query but cannot change locations."
+    },
+    {
+      "id": "faq-3",
+      "title": "Student portal and LMS",
+      "category": "faq",
+      "source": "LPU campus operational knowledge",
+      "text": "Students use the LPU student UMS/portal for attendance, results, fee status, and academic records. Course materials may also appear on the learning platform used by faculty. If login fails, use official password reset or IT helpdesk — never share passwords with others."
+    },
+    {
+      "id": "faq-4",
+      "title": "Attendance and exams basics",
+      "category": "faq",
+      "source": "LPU campus operational knowledge",
+      "text": "Attendance is tracked per course and can affect exam eligibility based on university rules. Mid-term and end-term exam schedules are published through official notices. Always confirm seating/venue from official exam notices, not from unofficial chats."
+    },
+    {
+      "id": "faq-5",
+      "title": "Fees and scholarships",
+      "category": "faq",
+      "source": "LPU campus operational knowledge",
+      "text": "Fee payment deadlines and scholarship/LPUNEST related updates are published by admissions and accounts offices. For exact outstanding dues or scholarship status, check the student portal or contact the finance/accounts helpdesk. LPUGPT does not invent fee amounts."
+    },
+    {
+      "id": "faq-6",
+      "title": "What LPUGPT can and cannot do",
+      "category": "faq",
+      "source": "LPUGPT policy",
+      "text": "LPUGPT answers from: (1) this campus knowledge base, (2) live course/update records in the database. It must not invent room numbers, fee amounts, ranks, or policies not present in retrieved context. If data is missing, it should say it does not have that information and suggest checking the official LPU portal or helpdesk."
+    },
+    {
+      "id": "courses-demo-1",
+      "title": "Demo course CSE301",
+      "category": "courses",
+      "source": "LPUGPT seed database",
+      "text": "CSE301 — Data Structures & Algorithms. Core CSE course with labs. Default seeded location: Block 34 Room 210. Schedule: Mon/Wed 10:00–11:30. Faculty in demo data: Dr. Meera Kapoor. Live location may change when the teacher updates it in LPUGPT."
+    },
+    {
+      "id": "courses-demo-2",
+      "title": "Demo course DSA201",
+      "category": "courses",
+      "source": "LPUGPT seed database",
+      "text": "DSA201 — Discrete Mathematics. Default seeded location: Block 29 Hall A. Schedule: Tue/Thu 14:00–15:30. Faculty in demo data: Dr. Meera Kapoor. Live location may change when the teacher updates it in LPUGPT."
+    },
+    {
+      "id": "courses-demo-3",
+      "title": "Demo course CSE401",
+      "category": "courses",
+      "source": "LPUGPT seed database",
+      "text": "CSE401 — Operating Systems. Default seeded location: Block 38 Room 102. Schedule: Mon/Wed 12:00–13:30. Faculty in demo data: Dr. Meera Kapoor."
+    },
+    {
+      "id": "courses-demo-4",
+      "title": "Demo course INT305",
+      "category": "courses",
+      "source": "LPUGPT seed database",
+      "text": "INT305 — Database Management Systems. Default seeded location: Block 33 Lab 4. Schedule: Tue/Fri 09:00–10:30. Faculty in demo data: Dr. Meera Kapoor."
+    },
+    {
+      "id": "courses-demo-5",
+      "title": "Demo course ENG101",
+      "category": "courses",
+      "source": "LPUGPT seed database",
+      "text": "ENG101 — Communication Skills. Default seeded location: Block 14 Room 05. Schedule: Thu 11:00–12:30. Faculty in demo data: Dr. Meera Kapoor."
+    },
+    {
+      "id": "blocks-1",
+      "title": "Common academic blocks",
+      "category": "facilities",
+      "source": "LPU campus operational knowledge",
+      "text": "Students commonly refer to teaching spaces as Block + number + Room/Hall/Lab. Examples used in LPUGPT live data: Block 14, Block 29, Block 33, Block 34, Block 38. Always trust the live database location for a course code over memory or outdated screenshots."
+    },
+    {
+      "id": "security-1",
+      "title": "Account and data safety",
+      "category": "policies",
+      "source": "LPUGPT policy",
+      "text": "Never share passwords, OTPs, or session cookies. Teachers can only update courses they own. Students only see courses they are enrolled in. Suspicious requests (asking for other students' private data) should be refused."
+    },
+    {
+      "id": "contacts-1",
+      "title": "Official channels",
+      "category": "faq",
+      "source": "LPU public info",
+      "text": "Official website: https://www.lpu.in/. For authoritative academic, fee, exam, and hostel decisions, use official LPU portals and helpdesks. LPUGPT is an assistant layer for live class logistics and campus Q&A grounded on its knowledge base + database."
+    }
+  ]
+}

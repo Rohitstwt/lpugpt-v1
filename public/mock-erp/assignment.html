@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mock UMS · Assignments</title>
+  <style>
+    body { font-family: "Segoe UI", system-ui, sans-serif; background: #f0f2f5; margin: 0; }
+    .header { background: #1a237e; color: #fff; padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { margin: 0; font-size: 1.35rem; }
+    .badge { background: #ff6a3d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .container { max-width: 620px; margin: 36px auto; background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); padding: 28px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; }
+    input, select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
+    .meta { font-size: 13px; color: #6b7280; margin-top: 6px; }
+    .deadline { color: #b45309; font-weight: 600; }
+    .btn { background: #e65100; color: #fff; border: none; padding: 12px 20px; font-size: 1rem; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; }
+    .btn:disabled { opacity: .6; cursor: wait; }
+    .success { display: none; background: #e8f5e9; border: 1px solid #4caf50; padding: 20px; border-radius: 10px; margin-top: 18px; text-align: center; }
+    .hint { color: #6b7280; font-size: 13px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Mock University Management System</h1>
+    <span class="badge">DEMO · not real LPU UMS</span>
+  </div>
+  <div class="container">
+    <h2 style="margin-top:0;color:#1a237e;border-bottom:2px solid #eee;padding-bottom:10px;">Assignment Upload</h2>
+    <p class="hint">LPUGPT can prepare this form when you ask to submit an assignment — you still confirm before upload.</p>
+    <form id="uploadForm">
+      <div class="form-group">
+        <label for="courseCode">Assignment</label>
+        <select id="courseCode">
+          <option value="CSE301">CSE301 — DSA Lab Report — Graphs</option>
+          <option value="CSE310">CSE310 — OS Project Checkpoint</option>
+          <option value="INT305">INT305 — DBMS ER Diagram Submission</option>
+        </select>
+        <p class="meta">Deadline: <span id="deadlineLabel" class="deadline">in 2 days</span></p>
+      </div>
+      <div class="form-group">
+        <label for="fileUpload">File (.pdf / .zip)</label>
+        <input id="fileUpload" type="file" />
+        <p class="meta" id="fileHint">No file chosen — agent can attach a demo file for you.</p>
+      </div>
+      <button type="button" class="btn" id="uploadBtn" onclick="submitAssignment()">Upload Assignment</button>
+    </form>
+    <div id="successBox" class="success">
+      <h3 style="color:#2e7d32;margin-top:0;">Submitted</h3>
+      <p><strong id="uploadedCourse"></strong></p>
+      <p style="font-size:.9em;color:#666;">Mock ERP updated — status is now SUBMITTED.</p>
+    </div>
+  </div>
+  <script>
+    const deadlines = {
+      CSE301: "Due in ~2 days",
+      CSE310: "Due in ~5 days",
+      INT305: "Overdue — submit ASAP",
+    };
+    const course = document.getElementById("courseCode");
+    const deadlineLabel = document.getElementById("deadlineLabel");
+    course.addEventListener("change", () => {
+      deadlineLabel.textContent = deadlines[course.value] || "Check UMS";
+    });
+    deadlineLabel.textContent = deadlines[course.value];
+
+    async function submitAssignment() {
+      const btn = document.getElementById("uploadBtn");
+      btn.disabled = true;
+      btn.innerText = "Uploading…";
+      const courseCode = course.value;
+      const fileInput = document.getElementById("fileUpload");
+      const fileName = fileInput.files?.[0]?.name || "assignment-demo.pdf";
+      const params = new URLSearchParams(window.location.search);
+      const agentMode = params.get("agent") === "1";
+      const agentKey = params.get("key") || "lpugpt-mock-agent";
+      try {
+        const res = await fetch(
+          agentMode ? "/api/mock-erp/assignments/agent-submit" : "/api/mock-erp/assignments/submit",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(agentMode ? { "x-erp-agent-key": agentKey } : {}),
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              courseCode,
+              fileName,
+              studentEmail: params.get("student") || "student@lpu.in",
+            }),
+          }
+        );
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("uploadForm").style.display = "none";
+          document.getElementById("successBox").style.display = "block";
+          document.getElementById("uploadedCourse").innerText =
+            data.label || courseCode;
+        } else {
+          btn.innerText = data.error || "Upload failed";
+          btn.disabled = false;
+        }
+      } catch (e) {
+        btn.innerText = "Network error";
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

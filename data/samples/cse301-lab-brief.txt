@@ -1,0 +1,11 @@
+# Mid-semester Lab Brief — CSE301
+Course: Data Structures & Algorithms
+Faculty: Dr. Meera Kapoor
+
+Agenda:
+1. Arrays vs Linked Lists tradeoffs
+2. Stack/Queue warm-up problems
+3. Lab submission on LMS by Friday 11:59 PM
+
+Bring your laptop. Pair programming is allowed.
+If the classroom moves, check LPUGPT for the live venue.
