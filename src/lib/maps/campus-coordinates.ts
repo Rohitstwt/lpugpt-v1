@@ -365,7 +365,7 @@ export function buildMapsDirectionsUrl(
   toLat: number,
   toLng: number
 ): string {
-  return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${fromLat}%2C${fromLng}%3B${toLat}%2C${toLng}`;
+  return `https://www.google.com/maps/dir/?api=1&origin=${fromLat}%2C${fromLng}&destination=${toLat}%2C${toLng}&travelmode=walking`;
 }
 
 export function getGoogleMapsBrowserKey() {

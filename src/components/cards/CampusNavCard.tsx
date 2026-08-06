@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Navigation, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, LocateFixed, Navigation, Search, Square } from "lucide-react";
 import { CampusMap } from "@/components/maps/CampusMap";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,13 @@ type LiveRoute = {
   mapsUrl: string;
   line: Array<{ lat: number; lng: number }>;
   provider: "osrm" | "estimate";
+  steps?: Array<{ instruction: string; lat?: number; lng?: number }>;
+};
+
+type UserLocation = {
+  lat: number;
+  lng: number;
+  accuracy: number;
 };
 
 const FILTERS: Array<{ id: "all" | PlaceCategory; label: string }> = [
@@ -48,6 +55,11 @@ export function CampusNavCard({ data }: { data: CampusNavCardData }) {
   const [q, setQ] = useState("");
   const [route, setRoute] = useState<LiveRoute | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
+  const [liveNavigation, setLiveNavigation] = useState(false);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const watchId = useRef<number | null>(null);
+  const lastRouteRequest = useRef<{ lat: number; lng: number; at: number } | null>(null);
 
   const from = places.find((p) => p.id === fromId) ?? null;
   const to = places.find((p) => p.id === toId) ?? null;
@@ -65,30 +77,42 @@ export function CampusNavCard({ data }: { data: CampusNavCardData }) {
     });
   }, [places, filter, q]);
 
-  const fallbackRoute = useMemo(() => {
-    if (!from || !to) return null;
-    const meters = haversineDistance(from.lat, from.lng, to.lat, to.lng);
+  const routeOrigin = liveNavigation && userLocation ? userLocation : from;
+
+  const fallbackRoute = useMemo<LiveRoute | null>(() => {
+    if (!routeOrigin || !to) return null;
+    const meters = haversineDistance(routeOrigin.lat, routeOrigin.lng, to.lat, to.lng);
     return {
       distance: formatDistance(meters),
       duration: formatDuration(estimateWalkTime(meters)),
-      mapsUrl: buildMapsDirectionsUrl(from.lat, from.lng, to.lat, to.lng),
+      mapsUrl: buildMapsDirectionsUrl(routeOrigin.lat, routeOrigin.lng, to.lat, to.lng),
       line: [
-        { lat: from.lat, lng: from.lng },
+        { lat: routeOrigin.lat, lng: routeOrigin.lng },
         { lat: to.lat, lng: to.lng },
       ],
       provider: "estimate" as const,
     };
-  }, [from, to]);
+  }, [routeOrigin, to]);
 
   useEffect(() => {
-    if (!from || !to) {
-      setRoute(null);
+    if (!routeOrigin || !to) {
+      return;
+    }
+
+    const now = Date.now();
+    const previous = lastRouteRequest.current;
+    if (
+      previous &&
+      now - previous.at < 12_000 &&
+      haversineDistance(previous.lat, previous.lng, routeOrigin.lat, routeOrigin.lng) < 12
+    ) {
       return;
     }
 
     let cancelled = false;
     setLoadingRoute(true);
-    const origin = `${from.lat},${from.lng}`;
+    lastRouteRequest.current = { lat: routeOrigin.lat, lng: routeOrigin.lng, at: now };
+    const origin = `${routeOrigin.lat},${routeOrigin.lng}`;
     const destination = `${to.lat},${to.lng}`;
 
     fetch(
@@ -106,6 +130,7 @@ export function CampusNavCard({ data }: { data: CampusNavCardData }) {
           mapsUrl: payload.mapsUrl,
           line: payload.path,
           provider: "osrm",
+          steps: payload.steps,
         });
       })
       .catch(() => {
@@ -118,7 +143,48 @@ export function CampusNavCard({ data }: { data: CampusNavCardData }) {
     return () => {
       cancelled = true;
     };
-  }, [from, to, fallbackRoute]);
+  }, [routeOrigin, to, fallbackRoute]);
+
+  useEffect(() => {
+    return () => {
+      if (watchId.current !== null) navigator.geolocation?.clearWatch(watchId.current);
+    };
+  }, []);
+
+  function startLiveNavigation() {
+    if (!("geolocation" in navigator)) {
+      setLocationError("Live location is not available in this browser.");
+      return;
+    }
+    setLocationError(null);
+    setLiveNavigation(true);
+    watchId.current = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        });
+      },
+      (error) => {
+        setLocationError(
+          error.code === error.PERMISSION_DENIED
+            ? "Location permission was denied. Allow location access to navigate."
+            : "Couldn’t get a GPS position. Move outdoors and try again."
+        );
+        setLiveNavigation(false);
+      },
+      { enableHighAccuracy: true, maximumAge: 5_000, timeout: 15_000 }
+    );
+  }
+
+  function stopLiveNavigation() {
+    if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
+    watchId.current = null;
+    setLiveNavigation(false);
+    setUserLocation(null);
+    lastRouteRequest.current = null;
+  }
 
   function pick(id: string) {
     if (picking === "from") {
@@ -147,7 +213,28 @@ export function CampusNavCard({ data }: { data: CampusNavCardData }) {
     active: p.id === fromId || p.id === toId,
   }));
 
+  if (userLocation) {
+    markers.push({
+      lat: userLocation.lat,
+      lng: userLocation.lng,
+      label: "You are here",
+      active: true,
+    });
+  }
+
   const active = route ?? fallbackRoute;
+  const remainingMeters =
+    userLocation && to
+      ? haversineDistance(userLocation.lat, userLocation.lng, to.lat, to.lng)
+      : null;
+  const nextStep =
+    active?.steps?.find(
+      (step) =>
+        step.lat === undefined ||
+        step.lng === undefined ||
+        !userLocation ||
+        haversineDistance(userLocation.lat, userLocation.lng, step.lat, step.lng) > 18
+    ) ?? active?.steps?.[0];
 
   return (
     <Card className="border-white/8 bg-transparent shadow-none overflow-hidden">
@@ -164,12 +251,15 @@ export function CampusNavCard({ data }: { data: CampusNavCardData }) {
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <button
             type="button"
-            onClick={() => setPicking("from")}
+            onClick={() => {
+              stopLiveNavigation();
+              setPicking("from");
+            }}
             className={`rounded-md px-2 py-1 ${
               picking === "from" ? "bg-white/10" : "text-text-muted"
             }`}
           >
-            From: {from?.name ?? "pick"}
+            From: {liveNavigation ? "Your location" : from?.name ?? "pick"}
           </button>
           <ArrowRight className="h-3 w-3 text-text-muted" />
           <button
@@ -182,6 +272,26 @@ export function CampusNavCard({ data }: { data: CampusNavCardData }) {
             To: {to?.name ?? "pick"}
           </button>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={liveNavigation ? "secondary" : "default"}
+            onClick={liveNavigation ? stopLiveNavigation : startLiveNavigation}
+          >
+            {liveNavigation ? <Square /> : <LocateFixed />}
+            {liveNavigation ? "Stop live navigation" : "Use my location"}
+          </Button>
+          {liveNavigation && !userLocation && (
+            <span className="text-[11px] text-text-muted">Finding your GPS location…</span>
+          )}
+          {userLocation && (
+            <span className="text-[11px] text-text-muted">
+              GPS accuracy ±{Math.round(userLocation.accuracy)} m
+            </span>
+          )}
+        </div>
+        {locationError && <p className="text-xs text-red-300">{locationError}</p>}
         {active && (
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{active.distance}</Badge>
@@ -194,7 +304,7 @@ export function CampusNavCard({ data }: { data: CampusNavCardData }) {
               rel="noopener noreferrer"
               className="text-[11px] text-orange hover:underline"
             >
-              Open in OSM
+              Open in Google Maps
             </a>
           </div>
         )}
@@ -206,6 +316,22 @@ export function CampusNavCard({ data }: { data: CampusNavCardData }) {
           zoom={15}
           heightClass="h-72"
         />
+
+        {liveNavigation && to && (
+          <div className="rounded-xl border border-orange/25 bg-orange/10 p-3">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-orange">
+              Live guidance to {to.name}
+            </p>
+            <p className="mt-1 text-sm font-medium text-text">
+              {nextStep?.instruction ?? "Follow the highlighted route towards your destination."}
+            </p>
+            {remainingMeters !== null && (
+              <p className="mt-1 text-xs text-text-muted">
+                About {formatDistance(remainingMeters)} straight-line distance remaining. Route refreshes as you move.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />

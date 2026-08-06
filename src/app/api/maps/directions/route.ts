@@ -52,11 +52,19 @@ export async function GET(req: NextRequest) {
 
     const steps =
       leg?.steps
-        ?.map((s: { manuver?: { instruction?: string }; name?: string }) => {
-          const instr =
-            (s as { maneuver?: { instruction?: string } }).maneuver
-              ?.instruction || s.name;
-          return instr;
+        ?.map((s: {
+          maneuver?: {
+            instruction?: string;
+            location?: [number, number];
+          };
+          name?: string;
+        }) => {
+          const instruction = s.maneuver?.instruction || s.name;
+          const location = s.maneuver?.location;
+          if (!instruction) return null;
+          return location
+            ? { instruction, lat: location[1], lng: location[0] }
+            : { instruction };
         })
         .filter(Boolean)
         .slice(0, 8) ?? [];
