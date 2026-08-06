@@ -37,6 +37,8 @@ yarn-error.log*
 # local databases
 *.db
 *.db-journal
+# The pre-seeded snapshot is intentionally tracked for DEMO_SQLITE_ON_VERCEL.
+!prisma/dev.db
 
 # user uploads
 /uploads
@@ -53,4 +55,3 @@ next-env.d.ts
 uploads/
 .tessdata/*.gz
 .tessdata/preprocessed.png
-

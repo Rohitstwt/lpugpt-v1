@@ -115,6 +115,15 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       include: { user: true },
     });
 
+    // The demo SQLite database is copied into each Vercel function's /tmp
+    // directory. A request can land on a different function instance, where
+    // its session row does not exist yet. The signed JWT is still valid, so
+    // load the seeded user and keep the demo flow usable.
+    if (!session && process.env.DEMO_SQLITE_ON_VERCEL === "1") {
+      const user = await prisma.user.findUnique({ where: { id: uid } });
+      return user ? toSessionUser(user) : null;
+    }
+
     if (!session || session.userId !== uid || session.expiresAt < new Date()) {
       if (session) {
         await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
