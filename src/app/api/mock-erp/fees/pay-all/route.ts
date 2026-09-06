@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/security";
 
 export const runtime = "nodejs";
 
 /** Pay every outstanding mock invoice for the current student. */
-export async function POST() {
-  const user = await getCurrentUser();
+export async function POST(req: NextRequest) {
+  const user = await getCurrentUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

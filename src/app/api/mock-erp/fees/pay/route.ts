@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/security";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized — log in as student first." }, { status: 401 });
   }
@@ -83,8 +83,8 @@ export async function POST(req: NextRequest) {
   });
 }
 
-export async function GET() {
-  const user = await getCurrentUser();
+export async function GET(req: NextRequest) {
+  const user = await getCurrentUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -118,7 +118,7 @@ async function handleNavigation(message: string): Promise<UIBlock[]> {
       {
         type: "text",
         content:
-          "Couldn't find those spots. Try Block 38, library, hostel, food court…",
+          "I could not locate those places on campus. Please try specific locations such as Block 38, the library, hostel, or food court.",
       },
       ...(await handleCampusMap()).filter((b) => b.type !== "text"),
     ];
@@ -132,10 +132,6 @@ async function handleNavigation(message: string): Promise<UIBlock[]> {
 
   return [
     {
-      type: "text",
-      content: `${route.from} → ${route.to} · ${route.distance} · ${route.duration}`,
-    },
-    {
       type: "campus_nav",
       data: {
         places,
@@ -148,10 +144,6 @@ async function handleNavigation(message: string): Promise<UIBlock[]> {
 
 async function handleCampusMap(): Promise<UIBlock[]> {
   return [
-    {
-      type: "text",
-      content: `Campus map — ${listCampusPlaces().length} places. Filter blocks / food / hostels, or ask “from Block 38 to Central Library”.`,
-    },
     {
       type: "campus_nav",
       data: {
@@ -262,7 +254,7 @@ async function handleEvents(): Promise<UIBlock[]> {
     return [
       {
         type: "text",
-        content: "No upcoming events found. Check back soon for campus happenings!",
+        content: "There are no upcoming events listed at this time.",
       },
     ];
   }
@@ -292,7 +284,7 @@ async function handleNotices(): Promise<UIBlock[]> {
   });
 
   if (!notices.length) {
-    return [{ type: "text", content: "No recent notices at the moment." }];
+    return [{ type: "text", content: "There are no recent notices at this time." }];
   }
 
   return notices.map((n) => ({
@@ -383,10 +375,10 @@ async function handleAttendance(user: SessionUser): Promise<UIBlock[]> {
   return [
     {
       type: "text",
-      content:
-        atRisk > 0
-          ? `${atRisk} below ${LPU_ATTENDANCE_MIN}%.`
-          : `All ≥${LPU_ATTENDANCE_MIN}%.`,
+        content:
+          atRisk > 0
+            ? `${atRisk} course(s) are below the ${LPU_ATTENDANCE_MIN}% attendance requirement.`
+            : `All courses meet the ${LPU_ATTENDANCE_MIN}% attendance requirement.`,
     },
     {
       type: "attendance_calc_card",
@@ -427,8 +419,8 @@ async function handleFees(user: SessionUser): Promise<UIBlock[]> {
       type: "text",
       content:
         totalDue > 0
-          ? `₹${totalDue.toLocaleString("en-IN")} due.`
-          : "Fees clear.",
+          ? `You have ₹${totalDue.toLocaleString("en-IN")} outstanding.`
+          : "Your fee balance is clear.",
     },
     {
       type: "fee_card",
@@ -525,7 +517,7 @@ async function handleGrades(user: SessionUser): Promise<UIBlock[]> {
       {
         type: "text",
         content:
-          "No marks yet in Mock UMS. Once results are posted, they'll show up here.",
+          "No marks are available in Mock UMS yet. Results will appear here once they are published.",
       },
     ];
   }
@@ -545,7 +537,7 @@ async function handleGrades(user: SessionUser): Promise<UIBlock[]> {
   return [
     {
       type: "text",
-      content: `SGPA ${sgpa.toFixed(2)}.`,
+      content: `Your SGPA is ${sgpa.toFixed(2)}.`,
     },
     {
       type: "grades_card",
@@ -580,7 +572,7 @@ async function handleCgpa(user: SessionUser): Promise<UIBlock[]> {
     return [
       {
         type: "text",
-        content: "No grades in Mock UMS yet — CGPA needs at least one result.",
+        content: "No grades are available in Mock UMS yet. At least one result is required to calculate CGPA.",
       },
     ];
   }
@@ -601,7 +593,7 @@ async function handleCgpa(user: SessionUser): Promise<UIBlock[]> {
   return [
     {
       type: "text",
-      content: `SGPA ${sgpa.toFixed(2)} · ${band.label}.`,
+      content: `Your SGPA is ${sgpa.toFixed(2)} (${band.label}).`,
     },
     {
       type: "cgpa_card",
@@ -622,7 +614,7 @@ async function handleResultsCharts(user: SessionUser): Promise<UIBlock[]> {
     return [
       {
         type: "text",
-        content: "No results to graph yet in Mock UMS.",
+        content: "No results are available to display in Mock UMS yet.",
       },
     ];
   }
@@ -648,7 +640,7 @@ async function handleResultsCharts(user: SessionUser): Promise<UIBlock[]> {
   return [
     {
       type: "text",
-      content: `SGPA ${sgpa.toFixed(2)}.`,
+      content: `Your SGPA is ${sgpa.toFixed(2)}.`,
     },
     chartsFromGrades(rows, attendance),
   ];
@@ -716,7 +708,9 @@ async function handleAssignments(
   return [
     {
       type: "text",
-      content: pending > 0 ? `${pending} open.` : "All submitted.",
+      content: pending > 0
+        ? `You have ${pending} assignment(s) pending submission.`
+        : "All assignments have been submitted.",
     },
     {
       type: "assignments_card",
@@ -917,7 +911,7 @@ export async function runOrchestrator(
     blocks = [
       {
         type: "text",
-        content: "I'm here to help with campus navigation, events, faculty, and more. What would you like to know?",
+        content: "I can help with campus navigation, events, faculty information, and more. How may I assist you?",
       },
     ];
   }
@@ -925,6 +919,6 @@ export async function runOrchestrator(
   return {
     intent,
     blocks,
-    reply: blocksToReply(blocks) || "Here's what I found for you.",
+    reply: blocksToReply(blocks) || "Here is the information you requested.",
   };
 }

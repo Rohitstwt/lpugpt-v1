@@ -1,30 +1,30 @@
 import { PrismaClient } from "@prisma/client";
-import { copyFileSync, existsSync, mkdirSync } from "fs";
-import path from "path";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
-/**
- * Short-lived Vercel demo mode. Serverless functions cannot keep a SQLite file
- * beside the deployed code, so each function instance gets a writable copy in
- * /tmp. It deliberately resets on cold starts; use a hosted database for any
- * real deployment.
- */
-function getDatabaseUrl() {
-  if (process.env.DEMO_SQLITE_ON_VERCEL !== "1") {
-    return process.env.DATABASE_URL;
+function buildDatabaseUrl() {
+  const base = process.env.DATABASE_URL;
+  if (!base) return undefined;
+  if (!base.startsWith("postgresql")) return base;
+  if (base.includes("connection_limit=")) return base;
+
+  const params = new URLSearchParams();
+  const poolLimit = process.env.DATABASE_POOL_SIZE ?? "20";
+  const poolTimeout = process.env.DATABASE_POOL_TIMEOUT ?? "30";
+
+  params.set("connection_limit", poolLimit);
+  params.set("pool_timeout", poolTimeout);
+
+  // pgBouncer / serverless poolers often require this.
+  if (process.env.DATABASE_PGBOUNCER === "1") {
+    params.set("pgbouncer", "true");
   }
 
-  const directory = path.join("/tmp", "lpugpt-demo");
-  const target = path.join(directory, "dev.db");
-  if (!existsSync(target)) {
-    mkdirSync(directory, { recursive: true });
-    copyFileSync(path.join(process.cwd(), "prisma", "dev.db"), target);
-  }
-  return `file:${target}`;
+  const joiner = base.includes("?") ? "&" : "?";
+  return `${base}${joiner}${params.toString()}`;
 }
 
-const databaseUrl = getDatabaseUrl();
+const databaseUrl = buildDatabaseUrl();
 
 export const prisma =
   globalForPrisma.prisma ??

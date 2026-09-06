@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mock UMS · Leave Application</title>
+  <style>
+    body { font-family: "Segoe UI", system-ui, sans-serif; background: #f0f2f5; margin: 0; }
+    .header { background: #1a237e; color: #fff; padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { margin: 0; font-size: 1.35rem; }
+    .badge { background: #ff6a3d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .container { max-width: 620px; margin: 36px auto; background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); padding: 28px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; font-size: 15px; font-family: inherit; }
+    textarea { min-height: 88px; resize: vertical; }
+    .meta { font-size: 13px; color: #6b7280; margin-top: 6px; }
+    .btn { background: #e65100; color: #fff; border: none; padding: 12px 20px; font-size: 1rem; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; }
+    .btn:disabled { opacity: .6; cursor: wait; }
+    .success { display: none; background: #e8f5e9; border: 1px solid #4caf50; padding: 20px; border-radius: 10px; margin-top: 18px; text-align: center; }
+    .hint { color: #6b7280; font-size: 13px; margin-top: 8px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Mock University Management System</h1>
+    <span class="badge">DEMO · not real LPU UMS</span>
+  </div>
+  <div class="container">
+    <h2 style="margin-top:0;color:#1a237e;border-bottom:2px solid #eee;padding-bottom:10px;">Leave Application</h2>
+    <p class="hint">LPUGPT can fill this form when you ask to apply for leave — you still confirm before submitting.</p>
+    <form id="leaveForm">
+      <div class="form-group">
+        <label for="leaveType">Leave type</label>
+        <select id="leaveType">
+          <option value="casual">Casual leave</option>
+          <option value="sick">Sick leave</option>
+          <option value="emergency">Emergency leave</option>
+          <option value="home">Home visit</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label for="fromDate">From</label>
+          <input id="fromDate" type="date" />
+        </div>
+        <div class="form-group">
+          <label for="toDate">To</label>
+          <input id="toDate" type="date" />
+        </div>
+      </div>
+      <p class="meta" id="durationLabel">Duration: —</p>
+      <div class="form-group">
+        <label for="reason">Reason</label>
+        <textarea id="reason" placeholder="Brief reason for leave…"></textarea>
+      </div>
+      <button type="button" class="btn" id="submitBtn" onclick="submitLeave()">Submit leave application</button>
+    </form>
+    <div id="successBox" class="success">
+      <h3 style="color:#2e7d32;margin-top:0;">Application submitted</h3>
+      <p><strong id="submittedLabel"></strong></p>
+      <p style="font-size:.9em;color:#666;">Status: <span id="submittedStatus">PENDING</span> — warden will review in Mock UMS.</p>
+    </div>
+  </div>
+  <script>
+    function isoDate(d) {
+      return d.toISOString().slice(0, 10);
+    }
+    function updateDuration() {
+      const from = document.getElementById("fromDate").value;
+      const to = document.getElementById("toDate").value;
+      const el = document.getElementById("durationLabel");
+      if (!from || !to) {
+        el.textContent = "Duration: —";
+        return;
+      }
+      const days = Math.max(1, Math.round((new Date(to) - new Date(from)) / 86400000) + 1);
+      el.textContent = `Duration: ${days} day(s)`;
+    }
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dayAfter = new Date();
+    dayAfter.setDate(dayAfter.getDate() + 2);
+    document.getElementById("fromDate").value = isoDate(tomorrow);
+    document.getElementById("toDate").value = isoDate(dayAfter);
+    updateDuration();
+    document.getElementById("fromDate").addEventListener("change", updateDuration);
+    document.getElementById("toDate").addEventListener("change", updateDuration);
+
+    async function submitLeave() {
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.innerText = "Submitting…";
+      const leaveType = document.getElementById("leaveType").value;
+      const fromDate = document.getElementById("fromDate").value;
+      const toDate = document.getElementById("toDate").value;
+      const reason = document.getElementById("reason").value.trim();
+      const params = new URLSearchParams(window.location.search);
+      const agentMode = params.get("agent") === "1";
+      const agentKey = params.get("key") || "lpugpt-mock-agent";
+      try {
+        const res = await fetch(
+          agentMode ? "/api/mock-erp/leave/agent-apply" : "/api/mock-erp/leave/apply",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(agentMode ? { "x-erp-agent-key": agentKey } : {}),
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              leaveType,
+              fromDate,
+              toDate,
+              reason,
+              studentEmail: params.get("student") || "student@lpu.in",
+            }),
+          }
+        );
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("leaveForm").style.display = "none";
+          document.getElementById("successBox").style.display = "block";
+          document.getElementById("submittedLabel").innerText = data.label || "Leave application";
+          document.getElementById("submittedStatus").innerText = data.status || "PENDING";
+        } else {
+          btn.innerText = data.error || "Submit failed";
+          btn.disabled = false;
+        }
+      } catch (e) {
+        btn.innerText = "Network error";
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

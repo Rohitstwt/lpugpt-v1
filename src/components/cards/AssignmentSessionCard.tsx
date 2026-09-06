@@ -308,18 +308,19 @@ export function AssignmentSessionCard({ data }: { data: AssignmentSessionData })
                     <div className="min-w-0 flex-1 space-y-3">
                       <div>
                         <div className="mb-1 flex flex-wrap gap-2">
-                          <Badge variant="default">Needs approval</Badge>
+                          <Badge variant="default">Awaiting approval</Badge>
                           <Badge variant="secondary" className="gap-1">
                             <Upload className="h-3 w-3" />
                             Before deadline
                           </Badge>
                         </div>
                         <p className="text-sm font-semibold">
-                          Submit {data.courseCode} assignment?
+                          Confirm submission for {data.courseCode}
                         </p>
                         <p className="mt-1 text-xs text-text-muted leading-relaxed">
-                          {data.assignmentTitle}. {data.dueLabel}. Portal stays
-                          visible — nothing uploads until you confirm.
+                          {data.assignmentTitle}. {data.dueLabel}. The portal
+                          remains visible — your assignment will not be uploaded
+                          until you confirm.
                         </p>
                       </div>
                       <Separator className="bg-white/10" />

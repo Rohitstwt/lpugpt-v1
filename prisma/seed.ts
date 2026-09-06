@@ -7,6 +7,12 @@ import { publishMeshEvent } from "../src/lib/mesh";
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.sessionMessage.deleteMany();
+  await prisma.chatSession.deleteMany();
+  await prisma.chunk.deleteMany();
+  await prisma.embeddingMeta.deleteMany();
+  await prisma.document.deleteMany();
+  await prisma.leaveApplication.deleteMany();
   await prisma.chatMessage.deleteMany();
   await prisma.campusUpdate.deleteMany();
   await prisma.attendanceRecord.deleteMany();
@@ -19,6 +25,12 @@ async function main() {
   await prisma.auditLog.deleteMany();
   await prisma.uploadedFile.deleteMany();
   await prisma.course.deleteMany();
+  await prisma.building.deleteMany();
+  await prisma.facultyMember.deleteMany();
+  await prisma.campusEvent.deleteMany();
+  await prisma.notice.deleteMany();
+  await prisma.club.deleteMany();
+  await prisma.futureIntegration.deleteMany();
   await prisma.user.deleteMany();
 
   const teacherHash = await bcrypt.hash("Teacher123!", 12);

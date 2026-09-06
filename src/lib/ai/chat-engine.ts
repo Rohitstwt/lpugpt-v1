@@ -621,6 +621,10 @@ function looksCampusRelated(message: string) {
   );
 }
 
+function asksForPersonalRecord(message: string) {
+  return /\b(my|show|view|check|calculate|how many|can i miss)\b/i.test(message);
+}
+
 export async function runChat(
   user: SessionUser,
   message: string,
@@ -634,12 +638,18 @@ export async function runChat(
 
   // Deterministic mock-ERP routing (small local models often skip tools)
   const lower = message.toLowerCase();
-  if (/\b(attendance|present|absent|bunk)\b/i.test(lower)) {
+  if (
+    asksForPersonalRecord(message) &&
+    /\b(attendance|present|absent|bunk)\b/i.test(lower)
+  ) {
     const code = message.match(/\b([A-Z]{2,4}\s?-?\s?\d{2,4}[A-Z]?)\b/i)?.[1];
     const result = await erpGetAttendance(user, code);
     return { reply: result.message, intent: result.intent };
   }
-  if (/\b(fee|fees|dues?|invoice|outstanding|tuition)\b/i.test(lower)) {
+  if (
+    asksForPersonalRecord(message) &&
+    /\b(fee|fees|dues?|invoice|outstanding|tuition)\b/i.test(lower)
+  ) {
     if (/\b(pay|paid|payment|clear|settle)\b/i.test(lower)) {
       const result = await erpMarkFeePaid(user);
       return { reply: result.message, intent: result.intent };
@@ -647,11 +657,17 @@ export async function runChat(
     const result = await erpGetFees(user);
     return { reply: result.message, intent: result.intent };
   }
-  if (/\b(result|results|grade|grades|marks|gpa|cgpa|transcript)\b/i.test(lower)) {
+  if (
+    asksForPersonalRecord(message) &&
+    /\b(result|results|grade|grades|marks|gpa|cgpa|transcript)\b/i.test(lower)
+  ) {
     const result = await erpGetResults(user);
     return { reply: result.message, intent: result.intent };
   }
-  if (/\b(hostel|warden|my room|allotment)\b/i.test(lower)) {
+  if (
+    asksForPersonalRecord(message) &&
+    /\b(hostel|warden|my room|allotment)\b/i.test(lower)
+  ) {
     const result = await erpGetHostel(user);
     return { reply: result.message, intent: result.intent };
   }
@@ -725,18 +741,18 @@ export async function runChat(
       content: m.content,
     }));
 
-  const system = `You are LPUGPT — the campus AI for Lovely Professional University students.
-Voice: sharp, warm, slightly witty — like a smart senior who actually uses UMS. Not a corporate FAQ bot. Not generic ChatGPT.
+  const system = `You are LPUGPT — the official campus assistant for Lovely Professional University students and staff.
+Voice: professional, courteous, and clear — like a knowledgeable university help desk. Warm but never casual or slangy.
 
 Identity rules:
 - Call yourself LPUGPT. Never say you are ChatGPT, Claude, Llama, or "an open-source LLM".
-- Prefer short answers (2–5 sentences) unless they ask for detail.
-- Use campus slang lightly when it fits (UMS, Mid-terms, Block 38, Uni-Hostel) — never force it.
+- Prefer concise answers (2–5 sentences) unless they ask for detail.
+- Use standard campus terminology (UMS, Block 38, Uni-Hostel) where appropriate — avoid slang, jokes, or overly familiar language.
 - For academic data (attendance, fees, marks, assignments, hostel), use erp_* tools. Never invent numbers.
-- Mock UMS only — say so briefly when showing ERP data. Never claim real LPU UMS access.
-- When tools return data, summarize like a human: lead with what matters, skip boilerplate.
+- Mock UMS only — note briefly when showing ERP data. Never claim real LPU UMS access.
+- When tools return data, summarize clearly: lead with what matters, skip boilerplate.
 
-You can still chat about anything (study tips, coding, life) — just stay in LPUGPT character.
+You can assist with general topics (study tips, coding, campus life) — always remain professional and helpful.
 
 User:
 - Name: ${user.name}
@@ -770,14 +786,14 @@ Campus rules:
 - Teachers/admins can update locations/schedules; students cannot.
 - Answer in 2–4 short sentences. Never dump whole source docs.`
     : `General conversation (not campus logistics).
-Reply naturally as LPUGPT. Don't refuse with campus-dataset messages. Don't force campus topics.
-If they say hi/hlo/hey — greet warmly in 1–2 lines and ask how you can help.`
+Reply professionally as LPUGPT. Don't refuse with campus-dataset messages. Don't force campus topics.
+If they greet you — respond with a brief, polite greeting and ask how you may assist them.`
 }
 
 Always:
-- Be clear and specific.
+- Be clear, respectful, and specific.
 - Never dump tool names, JSON, or function-call syntax.
-- End with a useful next step when it helps (e.g. "Want me to open Mock UMS to pay?").`;
+- End with a useful next step when it helps (e.g. "Would you like me to open Mock UMS to complete the payment?").`;
 
   const messages: ChatCompletionMessageParam[] = [
     { role: "system", content: system },
@@ -802,20 +818,20 @@ Always:
       const choice = completion.choices[0]?.message;
       if (!choice) {
         return {
-          reply: "I blanked for a second — say that again?",
+          reply: "I was unable to process that request. Please try again.",
           intent: "ERROR",
         };
       }
 
       const toolCalls = choice.tool_calls ?? [];
       if (!toolCalls.length) {
-        const content = choice.content?.trim() || "Hey — I'm here. What's up?";
+        const content = choice.content?.trim() || "Hello. How may I assist you today?";
         const cleaned = content
           .replace(/```json[\s\S]*?```/gi, "")
           .replace(/\{"name"\s*:\s*"[^"]+"[\s\S]*?\}/g, "")
           .trim();
         return {
-          reply: cleaned || "Hey — I'm here. What's up?",
+          reply: cleaned || "Hello. How may I assist you today?",
           intent,
           meshEvent,
         };
@@ -841,7 +857,7 @@ Always:
     }
 
     return {
-      reply: "Got tangled up — try asking that one more time?",
+      reply: "I had difficulty completing that request. Please try again.",
       intent,
       meshEvent,
     };
@@ -850,10 +866,8 @@ Always:
     console.error("LLM chat failed:", detail);
     return {
       reply:
-        provider === "ollama"
-          ? `I couldn't reach the local open-source model (${model}). Make sure Ollama is running (\`ollama serve\`), then try again.\n\n(${detail})`
-          : `The AI service is temporarily unavailable. Please try again.\n\n(${detail})`,
-      intent: "ERROR",
+        "I couldn't reach the language service for that question. Please try again in a moment, or ask me to show your courses, attendance, fees, results, or timetable.",
+      intent: "CHAT_UNAVAILABLE",
     };
   }
 }

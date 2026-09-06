@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/security";
 
@@ -15,8 +15,8 @@ async function resolveStudentId(user: { id: string; role: string }) {
   return user.id;
 }
 
-export async function GET() {
-  const user = await getCurrentUser();
+export async function GET(req: NextRequest) {
+  const user = await getCurrentUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const studentId = await resolveStudentId(user);
@@ -28,7 +28,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

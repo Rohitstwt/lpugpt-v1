@@ -2,10 +2,23 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["tesseract.js", "tesseract.js-core", "puppeteer"],
-  // Needed only by DEMO_SQLITE_ON_VERCEL: copy the seeded SQLite snapshot into
-  // each serverless function bundle so src/lib/db.ts can clone it to /tmp.
-  outputFileTracingIncludes: {
-    "/*": ["./prisma/dev.db"],
+  async headers() {
+    return [
+      {
+        source: "/api/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, PUT, DELETE, OPTIONS",
+          },
+          {
+            key: "Access-Control-Allow-Headers",
+            value: "Content-Type, Authorization",
+          },
+        ],
+      },
+    ];
   },
 };
 

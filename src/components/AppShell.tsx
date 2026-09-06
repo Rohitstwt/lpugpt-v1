@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageRenderer } from "@/components/chat/MessageRenderer";
 import { SuggestedQuestions } from "@/components/home/SuggestedQuestions";
 import type { UIBlock } from "@/types/ui-blocks";
+import { normalizeChatBlocks } from "@/lib/chat/normalize-blocks";
 
 type User = {
   id: string;
@@ -89,12 +90,15 @@ export default function AppShell({ user }: { user: User }) {
   );
 }
 
+import TeacherDashboard from "@/components/teacher/TeacherDashboard";
+
 function AppShellInner({ user }: { user: User }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showTeacherConsole, setShowTeacherConsole] = useState(false);
   const [messages, setMessages] = useState<ChatItem[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -397,13 +401,17 @@ function AppShellInner({ user }: { user: User }) {
         return;
       }
 
+      const packed = normalizeChatBlocks(data.reply || "", data.blocks ?? []);
+
       setMessages((m) => [
         ...m,
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: data.reply || "",
-          blocks: data.blocks ?? [{ type: "text", content: data.reply || "" }],
+          content: packed.reply,
+          blocks: packed.blocks.length
+            ? packed.blocks
+            : [{ type: "text", content: packed.reply || data.reply || "" }],
         },
       ]);
     } catch {
@@ -527,12 +535,25 @@ function AppShellInner({ user }: { user: User }) {
             </svg>
           </button>
           <span className="font-display text-lg font-700 text-orange">LPUGPT</span>
+          {user.role === "TEACHER" || user.role === "ADMIN" ? (
+            <button
+              type="button"
+              onClick={() => setShowTeacherConsole(true)}
+              className="ml-auto flex items-center gap-1.5 rounded-full border border-orange/40 bg-orange-soft px-3 py-1.5 text-xs font-semibold text-orange transition hover:bg-orange hover:text-bg"
+            >
+              🎓 Teacher Operations Console
+            </button>
+          ) : null}
           {listening ? (
             <span className="rounded-full bg-orange-soft px-2.5 py-1 text-[11px] text-orange">
               Listening… {dictating ? `"${dictating}"` : ""}
             </span>
           ) : null}
         </header>
+
+        {showTeacherConsole ? (
+          <TeacherDashboard onClose={() => setShowTeacherConsole(false)} />
+        ) : null}
 
         <div className="flex-1 overflow-y-auto">
           {empty ? (
@@ -542,10 +563,10 @@ function AppShellInner({ user }: { user: User }) {
                 animate={{ opacity: 1, y: 0 }}
                 className="font-display text-3xl font-700 tracking-tight text-text sm:text-4xl"
               >
-                What can I help you find?
+                How may I assist you today?
               </motion.h1>
               <p className="mt-3 text-center text-sm text-text-muted sm:text-base">
-                Navigate campus, discover events, find faculty — every answer is an experience.
+                Campus navigation, events, faculty, fees, and academic records — all in one place.
               </p>
               <SuggestedQuestions
                 onSelect={(q) => sendMessage(q)}

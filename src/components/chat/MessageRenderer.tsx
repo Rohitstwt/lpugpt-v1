@@ -20,6 +20,7 @@ import { PaymentResultCard } from "@/components/cards/PaymentResultCard";
 import { LiveBrowserCard } from "@/components/cards/LiveBrowserCard";
 import { AgentConfirmCard } from "@/components/cards/AgentConfirmCard";
 import { AssignmentSessionCard } from "@/components/cards/AssignmentSessionCard";
+import { LeaveSessionCard } from "@/components/cards/LeaveSessionCard";
 import { GradesCard } from "@/components/cards/GradesCard";
 import { AssignmentsCard } from "@/components/cards/AssignmentsCard";
 import { AttendanceCalcCard } from "@/components/cards/AttendanceCalcCard";
@@ -149,6 +150,8 @@ export function MessageRenderer({
             return <AgentConfirmCard key={i} data={block.data} />;
           case "assignment_session":
             return <AssignmentSessionCard key={i} data={block.data} />;
+          case "leave_session":
+            return <LeaveSessionCard key={i} data={block.data} />;
           case "grades_card":
             return <GradesCard key={i} data={block.data} />;
           case "assignments_card":

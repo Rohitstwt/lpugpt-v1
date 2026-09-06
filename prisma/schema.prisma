@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 model User {
@@ -29,6 +30,11 @@ model User {
   grades       GradeRecord[]
   hostel       HostelAllocation?
   assignments  AssignmentTask[]
+  leaveApps    LeaveApplication[]
+
+  @@index([role])
+  @@index([studentId])
+  @@index([department])
 }
 
 model Session {
@@ -43,6 +49,7 @@ model Session {
 
   @@index([userId])
   @@index([expiresAt])
+  @@index([userId, expiresAt])
 }
 
 model Course {
@@ -65,9 +72,56 @@ model Course {
   updates     CampusUpdate[]
   attendance  AttendanceRecord[]
   grades      GradeRecord[]
+  materials   CourseMaterial[]
+  questionPapers QuestionPaper[]
+  makeupClasses  MakeupClass[]
 
   @@index([teacherId])
   @@index([code])
+}
+
+model CourseMaterial {
+  id            String   @id @default(cuid())
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title         String
+  fileName      String
+  fileType      String
+  storagePath   String?
+  extractedText String?
+  createdAt     DateTime @default(now())
+
+  @@index([courseId])
+}
+
+model QuestionPaper {
+  id            String   @id @default(cuid())
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title         String
+  totalMarks    Int      @default(50)
+  durationMins  Int      @default(60)
+  difficulty    String   @default("Medium") // Easy | Medium | Hard
+  questions     String   // JSON string of questions & solutions
+  createdAt     DateTime @default(now())
+
+  @@index([courseId])
+}
+
+model MakeupClass {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topic       String
+  date        String
+  timeSlot    String
+  location    String
+  reason      String?
+  status      String   @default("SCHEDULED") // SCHEDULED | CANCELLED | COMPLETED
+  createdAt   DateTime @default(now())
+
+  @@index([courseId])
+  @@index([date])
 }
 
 model Enrollment {
@@ -79,6 +133,7 @@ model Enrollment {
   createdAt DateTime @default(now())
 
   @@unique([userId, courseId])
+  @@index([userId])
   @@index([courseId])
 }
 
@@ -99,8 +154,10 @@ model CampusUpdate {
   createdAt DateTime @default(now())
 
   @@index([courseId])
+  @@index([authorId])
   @@index([createdAt])
   @@index([type])
+  @@index([courseId, createdAt])
 }
 
 model ChatMessage {
@@ -114,6 +171,8 @@ model ChatMessage {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([userId, role, createdAt])
 }
 
 model AuditLog {
@@ -128,6 +187,8 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([userId])
+  @@index([action, createdAt])
+  @@index([resource, createdAt])
 }
 
 model UploadedFile {
@@ -143,6 +204,7 @@ model UploadedFile {
   createdAt     DateTime @default(now())
 
   @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 /// Mock University ERP — attendance
@@ -158,6 +220,7 @@ model AttendanceRecord {
 
   @@unique([userId, courseId])
   @@index([userId])
+  @@index([courseId])
 }
 
 /// Mock University ERP — fee invoices / dues
@@ -174,6 +237,9 @@ model FeeInvoice {
   createdAt   DateTime @default(now())
 
   @@index([userId, status])
+  @@index([userId, dueDate])
+  @@index([status, dueDate])
+  @@index([term])
 }
 
 /// Mock University ERP — results / grades
@@ -191,6 +257,8 @@ model GradeRecord {
 
   @@unique([userId, courseId, term])
   @@index([userId])
+  @@index([userId, term])
+  @@index([courseId])
 }
 
 /// Mock University ERP — hostel allotment
@@ -204,6 +272,9 @@ model HostelAllocation {
   warden    String?
   status    String   @default("ACTIVE") // ACTIVE | VACATED
   createdAt DateTime @default(now())
+
+  @@index([block])
+  @@index([status])
 }
 
 /// Mock University ERP — assignment submissions
@@ -220,7 +291,27 @@ model AssignmentTask {
   createdAt   DateTime  @default(now())
 
   @@index([userId, status])
+  @@index([userId, dueDate])
   @@index([courseCode])
+  @@index([status, dueDate])
+}
+
+/// Mock University ERP — leave applications
+model LeaveApplication {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveType  String    // sick | casual | emergency | home
+  fromDate   DateTime
+  toDate     DateTime
+  reason     String
+  status     String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  appliedAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  @@index([userId, status])
+  @@index([status, appliedAt])
+  @@index([fromDate, toDate])
 }
 
 /// Public knowledge — campus buildings
@@ -236,6 +327,7 @@ model Building {
   updatedAt   DateTime @updatedAt
 
   @@index([block])
+  @@index([name])
 }
 
 /// Public knowledge — faculty directory
@@ -266,6 +358,7 @@ model CampusEvent {
   updatedAt   DateTime @updatedAt
 
   @@index([date])
+  @@index([category, date])
 }
 
 /// Public knowledge — notices
@@ -279,6 +372,7 @@ model Notice {
   updatedAt DateTime @updatedAt
 
   @@index([createdAt])
+  @@index([priority, createdAt])
 }
 
 /// Public knowledge — clubs
@@ -290,6 +384,8 @@ model Club {
   contact     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([category])
 }
 
 /// RAG — indexed documents
@@ -305,6 +401,7 @@ model Document {
   chunks    Chunk[]
 
   @@index([category])
+  @@index([status])
 }
 
 /// RAG — document chunks
@@ -318,6 +415,7 @@ model Chunk {
   createdAt  DateTime @default(now())
 
   @@index([documentId])
+  @@index([documentId, index])
 }
 
 /// RAG — embedding metadata (vectors stored in file index for MVP)
@@ -328,6 +426,9 @@ model EmbeddingMeta {
   model      String
   dimensions Int?
   createdAt  DateTime @default(now())
+
+  @@index([documentId])
+  @@index([chunkId])
 }
 
 /// Chat sessions for history
@@ -340,6 +441,7 @@ model ChatSession {
   messages  SessionMessage[]
 
   @@index([userId])
+  @@index([userId, updatedAt])
 }
 
 model SessionMessage {
@@ -353,6 +455,7 @@ model SessionMessage {
   createdAt DateTime    @default(now())
 
   @@index([sessionId, createdAt])
+  @@index([createdAt])
 }
 
 /// Future integration registry

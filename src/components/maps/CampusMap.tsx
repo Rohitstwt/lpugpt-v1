@@ -10,6 +10,7 @@ type MapMarker = {
   label: string;
   type?: string;
   active?: boolean;
+  kind?: "place" | "user" | "destination";
 };
 
 type CampusMapProps = {
@@ -18,6 +19,7 @@ type CampusMapProps = {
   zoom?: number;
   markers?: MapMarker[];
   routeLine?: Array<{ lat: number; lng: number }>;
+  followUser?: { lat: number; lng: number } | null;
   className?: string;
   heightClass?: string;
 };
@@ -42,6 +44,7 @@ export function CampusMap({
   zoom = 15,
   markers = [],
   routeLine,
+  followUser,
   className,
   heightClass = "h-56",
 }: CampusMapProps) {
@@ -56,6 +59,7 @@ export function CampusMap({
           zoom={zoom}
           markers={markers}
           routeLine={routeLine}
+          followUser={followUser}
           className="h-full w-full"
         />
       </div>

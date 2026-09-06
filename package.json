@@ -8,9 +8,18 @@
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force",
-    "kb:index": "node --import tsx scripts/index-knowledge.ts"
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:setup": "npm run db:up && sleep 5 && npm run db:migrate:deploy && npm run db:seed",
+    "db:scale-seed": "node --import tsx scripts/scale-seed-students.ts",
+    "kb:index": "node --import tsx scripts/index-knowledge.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test && npm run test:e2e"
   },
   "prisma": {
     "seed": "node --import tsx prisma/seed.ts"

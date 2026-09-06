@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
   const { email, password } = parsed.data;
   const user = await prisma.user.findUnique({ where: { email } });
 
-  // Constant-ish failure path to reduce user enumeration timing gaps
   const dummyHash = "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIeWEgI.2.";
   const ok = user ? await verifyPassword(password, user.passwordHash) : await verifyPassword(password, dummyHash);
 
@@ -37,7 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
   }
 
-  await createSession(user.id, {
+  const token = await createSession(user.id, {
     ip,
     userAgent: req.headers.get("user-agent"),
   });
@@ -51,5 +50,6 @@ export async function POST(req: NextRequest) {
       name: user.name,
       role: user.role,
     },
+    token,
   });
 }

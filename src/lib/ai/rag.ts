@@ -20,6 +20,10 @@ type IndexFile = {
   documents: IndexedDoc[];
 };
 
+function isIndexedDoc(doc: KnowledgeDoc | IndexedDoc): doc is IndexedDoc {
+  return "embedding" in doc && Array.isArray(doc.embedding);
+}
+
 const DATA_DIR = path.join(process.cwd(), "data");
 const KNOWLEDGE_PATH = path.join(DATA_DIR, "campus-knowledge.json");
 const INDEX_PATH = path.join(DATA_DIR, "embeddings.json");
@@ -115,12 +119,12 @@ export async function buildKnowledgeIndex() {
 }
 
 export async function retrieveKnowledge(query: string, k = 5) {
-  let index = loadIndex();
-  if (!index.length) {
-    // Lazy build once if index missing
-    await buildKnowledgeIndex();
-    index = loadIndex();
-  }
+  const index = loadIndex();
+  // The index is built by the ingestion script. Requests stay read-only and fall
+  // back to lexical retrieval when embeddings are unavailable.
+  const docs: Array<KnowledgeDoc | IndexedDoc> = index.length
+    ? index
+    : loadKnowledgeDocs();
 
   const model = process.env.EMBED_MODEL || "nomic-embed-text";
   let queryEmbedding: number[] | null = null;
@@ -130,12 +134,12 @@ export async function retrieveKnowledge(query: string, k = 5) {
     queryEmbedding = null;
   }
 
-  const scored = index.map((doc) => {
+  const scored = docs.map((doc) => {
     const lex = lexicalScore(query, doc);
-    const sem = queryEmbedding ? cosine(queryEmbedding, doc.embedding) : 0;
+    const sem = queryEmbedding && isIndexedDoc(doc) ? cosine(queryEmbedding, doc.embedding) : 0;
     return {
       doc,
-      score: sem * 0.75 + lex * 0.25,
+      score: queryEmbedding && isIndexedDoc(doc) ? sem * 0.75 + lex * 0.25 : lex,
       sem,
       lex,
     };

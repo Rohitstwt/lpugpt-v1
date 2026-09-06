@@ -272,7 +272,7 @@ export async function answerQuestionAboutImage(
     const answered = await answerFromOcrText(ocr, filename, question);
     if (answered) return answered.slice(0, 6000);
 
-    return `Here's what I can read from the flyer (${filename}):\n\n${ocr.slice(0, 5000)}`;
+    return `Text extracted from the flyer (${filename}):\n\n${ocr.slice(0, 5000)}`;
   }
 
   const text = await askVision(

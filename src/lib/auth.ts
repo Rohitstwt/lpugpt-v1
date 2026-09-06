@@ -103,7 +103,10 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE_NAME)?.value;
   if (!token) return null;
+  return userFromJwt(token);
+}
 
+export async function userFromJwt(token: string): Promise<SessionUser | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
     const sid = typeof payload.sid === "string" ? payload.sid : null;
@@ -114,15 +117,6 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       where: { tokenHash: sid },
       include: { user: true },
     });
-
-    // The demo SQLite database is copied into each Vercel function's /tmp
-    // directory. A request can land on a different function instance, where
-    // its session row does not exist yet. The signed JWT is still valid, so
-    // load the seeded user and keep the demo flow usable.
-    if (!session && process.env.DEMO_SQLITE_ON_VERCEL === "1") {
-      const user = await prisma.user.findUnique({ where: { id: uid } });
-      return user ? toSessionUser(user) : null;
-    }
 
     if (!session || session.userId !== uid || session.expiresAt < new Date()) {
       if (session) {
@@ -135,6 +129,31 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   } catch {
     return null;
   }
+}
+
+export async function getCurrentUserFromRequest(
+  req: { headers: { get(name: string): string | null } }
+): Promise<SessionUser | null> {
+  const auth = req.headers.get("authorization");
+  if (auth?.startsWith("Bearer ")) {
+    return userFromJwt(auth.slice(7).trim());
+  }
+  return getCurrentUser();
+}
+
+export async function destroySessionFromToken(token?: string | null) {
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, getSecret());
+      const sid = typeof payload.sid === "string" ? payload.sid : null;
+      if (sid) {
+        await prisma.session.deleteMany({ where: { tokenHash: sid } });
+      }
+    } catch {
+      // ignore
+    }
+  }
+  await destroySession();
 }
 
 export function requireRole(user: SessionUser, roles: Role[]) {

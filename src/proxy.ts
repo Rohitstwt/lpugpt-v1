@@ -6,18 +6,33 @@ const PUBLIC = new Set(["/", "/login", "/register"]);
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  if (req.method === "OPTIONS" && pathname.startsWith("/api/")) {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
+  }
+
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/campus") ||
+    pathname.startsWith("/api/maps/") ||
     pathname.startsWith("/api/mock-erp/fees/agent-pay") ||
     pathname.startsWith("/api/mock-erp/assignments/agent-submit") ||
+    pathname.startsWith("/api/mock-erp/leave/agent-apply") ||
     pathname.includes(".") // static assets
   ) {
     return NextResponse.next();
   }
 
-  const token = req.cookies.get("lpugpt_session")?.value;
+  const cookieToken = req.cookies.get("lpugpt_session")?.value;
+  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
+  const token = bearer || cookieToken;
   const isApp = pathname.startsWith("/app") || pathname.startsWith("/api/");
 
   if (PUBLIC.has(pathname) && !isApp) {

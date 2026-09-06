@@ -403,19 +403,20 @@ export function LiveBrowserCard({
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="mb-1 flex flex-wrap items-center gap-2">
-                          <Badge variant="default">Needs approval</Badge>
+                          <Badge variant="default">Awaiting approval</Badge>
                           <Badge variant="secondary" className="gap-1">
                             <ShieldAlert className="h-3 w-3" />
                             You stay in control
                           </Badge>
                         </div>
                         <p className="text-sm font-semibold text-text">
-                          Open UMS and prepare a fee payment?
+                          Confirm fee payment in Mock UMS
                         </p>
                         <p className="mt-1 text-xs leading-relaxed text-text-muted">
-                          Portal stays visible. I’ll only fill the form after{" "}
-                          <span className="text-text">Allow</span> — and I won’t
-                          click Pay until you confirm.
+                          The portal remains visible. The form will be prepared
+                          only after you select{" "}
+                          <span className="text-text">Allow</span>, and payment
+                          will not be processed until you confirm.
                         </p>
                       </div>
                     </div>

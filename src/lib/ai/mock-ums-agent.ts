@@ -61,13 +61,24 @@ export function isSubmitAssignmentCommand(message: string) {
     || /\bbefore (the )?deadline\b/.test(lower) && /\b(assignment|submit|upload)\b/.test(lower);
 }
 
+export function isApplyLeaveCommand(message: string) {
+  const lower = message.toLowerCase();
+  return (
+    (/\b(apply|submit|request|file|take)\b/.test(lower) &&
+      /\b(leave|absence|day off)\b/.test(lower)) ||
+    /\bleave application\b/.test(lower) ||
+    /\b(sick leave|casual leave|emergency leave|home visit)\b/.test(lower)
+  );
+}
+
 export function isMockUmsCommand(message: string) {
   const lower = message.toLowerCase();
   return (
     isPayFeesCommand(message) ||
     isSubmitAssignmentCommand(message) ||
+    isApplyLeaveCommand(message) ||
     /\b(open (ums|erp|fee portal)|launch (ums|erp)|go to (ums|fee))\b/.test(lower) ||
-    /\b(apply leave|register (for )?course|update timetable)\b/.test(lower)
+    /\b(register (for )?course|update timetable)\b/.test(lower)
   );
 }
 
@@ -120,16 +131,136 @@ export async function ensureDemoAssignments(user: SessionUser) {
   return studentId;
 }
 
+function isoDate(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function addDays(base: Date, days: number) {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function parseLeaveType(message: string): "sick" | "casual" | "emergency" | "home" {
+  const lower = message.toLowerCase();
+  if (/\bsick\b/.test(lower)) return "sick";
+  if (/\bemergency\b/.test(lower)) return "emergency";
+  if (/\bhome\b/.test(lower)) return "home";
+  return "casual";
+}
+
+function parseLeaveDates(message: string): { from: Date; to: Date; label: string } {
+  const lower = message.toLowerCase();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (/\btomorrow\b/.test(lower) && /\bday after\b/.test(lower)) {
+    const from = addDays(today, 1);
+    const to = addDays(today, 2);
+    return { from, to, label: "Tomorrow – day after" };
+  }
+  if (/\btomorrow\b/.test(lower)) {
+    const from = addDays(today, 1);
+    return { from, to: from, label: "Tomorrow" };
+  }
+  if (/\bnext week\b/.test(lower)) {
+    const from = addDays(today, 7);
+    const to = addDays(today, 11);
+    return { from, to, label: "Next week (Mon–Fri)" };
+  }
+  const daysMatch = lower.match(/\b(\d+)\s*days?\b/);
+  if (daysMatch) {
+    const n = Math.min(14, Math.max(1, parseInt(daysMatch[1], 10)));
+    const from = addDays(today, 1);
+    const to = addDays(from, n - 1);
+    return { from, to, label: `${n} day(s)` };
+  }
+
+  const from = addDays(today, 1);
+  const to = addDays(today, 2);
+  return { from, to, label: "2 days (default)" };
+}
+
+const LEAVE_TYPE_LABEL: Record<string, string> = {
+  sick: "Sick leave",
+  casual: "Casual leave",
+  emergency: "Emergency leave",
+  home: "Home visit",
+};
+
+function defaultLeaveReason(type: string, message: string) {
+  if (/\bfever|unwell|doctor|medical\b/i.test(message)) {
+    return "Not feeling well — need rest as advised.";
+  }
+  if (type === "home") return "Family visit — requesting home pass.";
+  if (type === "emergency") return "Urgent personal matter — need to leave campus.";
+  return "Personal work — requesting leave as per university policy.";
+}
+
+export async function runApplyLeaveAutomation(
+  user: SessionUser,
+  message = ""
+): Promise<{ reply: string; intent: string; blocks: UIBlock[] }> {
+  if (user.role !== "STUDENT" && user.role !== "ADMIN") {
+    return {
+      reply: "Leave applications are available only for student accounts.",
+      intent: "ERP_LEAVE_AGENT",
+      blocks: [
+        { type: "text", content: "Leave applications are available only for student accounts." },
+      ],
+    };
+  }
+
+  const studentId = await resolveStudentId(user);
+  const student =
+    (await prisma.user.findUnique({ where: { id: studentId } })) ??
+    ({ name: user.name, email: user.email } as { name: string; email: string });
+
+  const leaveType = parseLeaveType(message);
+  const { from, to, label: dateLabel } = parseLeaveDates(message);
+  const reason =
+    message.match(/because\s+(.+)/i)?.[1]?.trim().slice(0, 280) ||
+    defaultLeaveReason(leaveType, message);
+
+  const agentKey = process.env.ERP_AGENT_KEY || "lpugpt-mock-agent";
+  const studentEmail =
+    ("email" in student && student.email) || user.email || "student@lpu.in";
+  const portalPath = `/mock-erp/leave.html?agent=1&key=${encodeURIComponent(agentKey)}&student=${encodeURIComponent(studentEmail)}`;
+
+  return {
+    reply: `Please review and confirm your ${LEAVE_TYPE_LABEL[leaveType]} leave application.`,
+    intent: "ERP_LEAVE_CONFIRM",
+    blocks: [
+      {
+        type: "leave_session",
+        data: {
+          url: portalPath,
+          title: "Mock UMS · Leave",
+          studentName: student.name,
+          studentEmail,
+          leaveType,
+          leaveTypeLabel: LEAVE_TYPE_LABEL[leaveType] || leaveType,
+          fromDate: isoDate(from),
+          toDate: isoDate(to),
+          dateLabel,
+          reason,
+          requireApproval: true,
+        },
+      },
+    ],
+  };
+}
+
 export async function runSubmitAssignmentAutomation(
   user: SessionUser,
   message = ""
 ): Promise<{ reply: string; intent: string; blocks: UIBlock[] }> {
   if (user.role !== "STUDENT" && user.role !== "ADMIN") {
     return {
-      reply: "Assignment submit is for student accounts.",
+      reply: "Assignment submission is available only for student accounts.",
       intent: "ERP_ASSIGN_AGENT",
       blocks: [
-        { type: "text", content: "Assignment submit is for student accounts." },
+        { type: "text", content: "Assignment submission is available only for student accounts." },
       ],
     };
   }
@@ -175,12 +306,12 @@ export async function runSubmitAssignmentAutomation(
 
   if (!task) {
     return {
-      reply: "No pending assignments in Mock UMS.",
+      reply: "You have no pending assignments in Mock UMS.",
       intent: "ERP_ASSIGN_AGENT",
       blocks: [
         {
           type: "text",
-          content: "No pending assignments right now in Mock UMS.",
+          content: "You have no pending assignments in Mock UMS at this time.",
         },
       ],
     };
@@ -192,7 +323,7 @@ export async function runSubmitAssignmentAutomation(
   const portalPath = `/mock-erp/assignment.html?agent=1&key=${encodeURIComponent(agentKey)}&student=${encodeURIComponent(studentEmail)}`;
 
   return {
-    reply: `Needs approval to submit ${task.courseCode}.`,
+    reply: `Please review and confirm submission for ${task.courseCode}.`,
     intent: "ERP_ASSIGN_CONFIRM",
     blocks: [
       {
@@ -412,12 +543,12 @@ export async function runPayFeesAutomation(
 }> {
   if (user.role !== "STUDENT" && user.role !== "ADMIN") {
     return {
-      reply: "Fee automation is for student accounts.",
+      reply: "Fee payment is available only for student accounts.",
       intent: "ERP_PAY_AGENT",
       blocks: [
         {
           type: "text",
-          content: "Fee automation is for student accounts.",
+          content: "Fee payment is available only for student accounts.",
         },
       ],
     };
@@ -467,7 +598,7 @@ export async function runPayFeesAutomation(
         `${inv.category}: ₹${(inv.amountInr - inv.paidInr).toLocaleString("en-IN")} (${inv.status})`
     );
     return {
-      reply: "Needs your approval to continue in Mock UMS.",
+      reply: "Please review the payment details and approve to proceed in Mock UMS.",
       intent: "ERP_PAY_CONFIRM",
       blocks: [
         {
@@ -531,7 +662,7 @@ export async function runPayFeesAutomation(
   const txn = browserResult.txnHint || txnId();
 
   return {
-    reply: `Paid ₹${amountPaid.toLocaleString("en-IN")}`,
+    reply: `Payment of ₹${amountPaid.toLocaleString("en-IN")} has been recorded successfully.`,
     intent: "ERP_PAY_AGENT",
     blocks: [
       {

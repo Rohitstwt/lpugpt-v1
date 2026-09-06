@@ -351,6 +351,25 @@ export const AssignmentSessionBlockSchema = z.object({
   data: AssignmentSessionDataSchema,
 });
 
+export const LeaveSessionDataSchema = z.object({
+  url: z.string(),
+  title: z.string().optional(),
+  studentName: z.string(),
+  studentEmail: z.string().optional(),
+  leaveType: z.enum(["sick", "casual", "emergency", "home"]),
+  leaveTypeLabel: z.string(),
+  fromDate: z.string(),
+  toDate: z.string(),
+  dateLabel: z.string(),
+  reason: z.string(),
+  requireApproval: z.boolean().optional().default(true),
+});
+
+export const LeaveSessionBlockSchema = z.object({
+  type: z.literal("leave_session"),
+  data: LeaveSessionDataSchema,
+});
+
 export const AgentConfirmDataSchema = z.object({
   title: z.string(),
   description: z.string(),
@@ -562,6 +581,7 @@ export const UIBlockSchema = z.discriminatedUnion("type", [
   PaymentResultBlockSchema,
   LiveBrowserBlockSchema,
   AssignmentSessionBlockSchema,
+  LeaveSessionBlockSchema,
   AgentConfirmBlockSchema,
   TimetableCardBlockSchema,
   GradesCardBlockSchema,
@@ -605,6 +625,7 @@ export type TimetableCardData = z.infer<typeof TimetableCardDataSchema>;
 export type PaymentResultData = z.infer<typeof PaymentResultDataSchema>;
 export type LiveBrowserData = z.infer<typeof LiveBrowserDataSchema>;
 export type AssignmentSessionData = z.infer<typeof AssignmentSessionDataSchema>;
+export type LeaveSessionData = z.infer<typeof LeaveSessionDataSchema>;
 export type AgentConfirmData = z.infer<typeof AgentConfirmDataSchema>;
 export type GradesCardData = z.infer<typeof GradesCardDataSchema>;
 export type AssignmentsCardData = z.infer<typeof AssignmentsCardDataSchema>;

@@ -54,20 +54,28 @@ export async function GET(req: NextRequest) {
       leg?.steps
         ?.map((s: {
           maneuver?: {
-            instruction?: string;
+            type?: string;
+            modifier?: string;
             location?: [number, number];
           };
           name?: string;
+          distance?: number;
+          duration?: number;
         }) => {
-          const instruction = s.maneuver?.instruction || s.name;
           const location = s.maneuver?.location;
-          if (!instruction) return null;
-          return location
-            ? { instruction, lat: location[1], lng: location[0] }
-            : { instruction };
+          if (!location) return null;
+          return {
+            maneuver: {
+              type: s.maneuver?.type,
+              modifier: s.maneuver?.modifier,
+              location,
+            },
+            name: s.name,
+            distance: s.distance,
+            duration: s.duration,
+          };
         })
-        .filter(Boolean)
-        .slice(0, 8) ?? [];
+        .filter(Boolean) ?? [];
 
     const distanceM = route.distance ?? 0;
     const durationS = route.duration ?? 0;
